@@ -557,6 +557,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		}
 		
 	private:
+ 		LuaGlueClass(const LuaGlueClass<_Class>& x) {} // forbid copy-ctor to avoir messing with lua state.
 		LuaGlueBase *luaGlue_;
 		std::string name_;
 		LUA_UNSIGNED lg_typeid_;
