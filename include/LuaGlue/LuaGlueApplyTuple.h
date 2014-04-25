@@ -1005,7 +1005,7 @@ template <class C, int N >
 struct apply_ctor_func
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...>& t,
+	static std::shared_ptr<C>* applyTuple(	LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
 		const static int argCount = sizeof...(ArgsT);
@@ -1030,10 +1030,10 @@ template <class C>
 struct apply_ctor_func<C, 0>
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	LuaGlueBase *, lua_State *, const std::tuple<ArgsT...>& /* t */,
+	static std::shared_ptr<C>* applyTuple(	LuaGlueBase *, lua_State *, const std::tuple<ArgsT...>& /* t */,
 								Args... args )
 	{
-		return new C( args... );
+		return new std::shared_ptr<C>(new C(args... ));
 	}
 };
 
@@ -1044,7 +1044,7 @@ struct apply_ctor_func<C, 0>
  */
 // Actual apply function
 template < typename C, typename... ArgsT >
-C *applyTuple( LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...> & t )
+std::shared_ptr<C>* applyTuple( LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...> & t )
 {
 	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }

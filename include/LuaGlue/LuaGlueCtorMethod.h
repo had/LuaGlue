@@ -18,7 +18,7 @@ template<typename _Class, typename... _Args>
 class LuaGlueCtorMethod : public LuaGlueMethodBase
 {
 	public:
-		typedef _Class ClassType;
+		typedef std::shared_ptr<_Class> ClassType;
 		typedef _Class *ReturnType;
 		
 		LuaGlueCtorMethod(LuaGlueClass<_Class> *luaClass, const std::string &name) : glueClass(luaClass), name_(name)
@@ -44,7 +44,7 @@ class LuaGlueCtorMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			_Class *obj = applyTuple<_Class>(glueClass->luaGlue(), state, args);
+			ClassType *obj = applyTuple<_Class>(glueClass->luaGlue(), state, args);
 			lua_pop(state, (int)Arg_Count_);
 			
 			LuaGlueObject<ClassType> *udata = (LuaGlueObject<ClassType> *)lua_newuserdata(state, sizeof(LuaGlueObject<ClassType>));
