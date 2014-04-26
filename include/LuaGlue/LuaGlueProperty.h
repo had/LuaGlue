@@ -44,14 +44,14 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			return accessImpl(state, std::is_class<typename std::remove_pointer<Type>::type>());
 		}
 		
-		void getReturnVal(lua_State *state, _Class *obj, std::true_type)
+		int getReturnVal(lua_State *state, _Class *obj, std::true_type)
 		{
 			LG_Debug("getReturnVal:pointer");
 			Type val = (obj->*prop_);
-			stack<Type>::put(glueClass->luaGlue(), state, val);
+			return stack<Type>::sput(glueClass->luaGlue(), state, val);
 		}
 		
-		void getReturnVal(lua_State *state, _Class *obj, std::false_type)
+		int getReturnVal(lua_State *state, _Class *obj, std::false_type)
 		{
 			LG_Debug("getReturnVal:!pointer");
 			
@@ -60,13 +60,13 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 
 
 			Type *val = &(obj->*prop_);
-			stack<Type>::put(glueClass->luaGlue(), state, val);
+			return stack<Type>::sput(glueClass->luaGlue(), state, val);
 		}
 		
-		void getReturnVal(lua_State *state, _Class *obj)
+		int getReturnVal(lua_State *state, _Class *obj)
 		{
 			//printf("getProp: %s::%s\n", glueClass->name().c_str(), name_.c_str());
-			getReturnVal(state, obj, std::is_pointer<Type>());
+			return getReturnVal(state, obj, std::is_pointer<Type>());
 		}
 		
 		void setProp(lua_State *state, _Class *obj, std::true_type)
@@ -117,8 +117,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			if(nargs == 2)
 			{
 				// get
-				getReturnVal(state, ptr);
-				return 1;
+				return getReturnVal(state, ptr);
 			}
 			else if(nargs == 3)
 			{
@@ -156,8 +155,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 				// get
 				LG_Debug("type: %s", typeid(decltype((ptr->*prop_))).name());
 				Type val = (ptr->*prop_);
-				stack<Type>::put(glueClass->luaGlue(), state, val);
-				return 1;
+				return stack<Type>::sput(glueClass->luaGlue(), state, val);
 			}
 			else if(nargs == 3)
 			{
@@ -216,11 +214,11 @@ class LuaGlueDirectProperty<std::shared_ptr<_Type>, _Class> : public LuaGlueProp
 			return accessImpl(state, std::is_class<typename std::remove_pointer<Type>::type>());
 		}
 		
-		void getReturnVal(lua_State *state, _Class *obj)
+		int getReturnVal(lua_State *state, _Class *obj)
 		{
 			//printf("getProp: %s::%s\n", glueClass->name().c_str(), name_.c_str());
 			SharedType val = (obj->*prop_);
-			stack<SharedType>::put(glueClass->luaGlue(), state, val);
+			return stack<SharedType>::sput(glueClass->luaGlue(), state, val);
 		}
 		
 		void setProp(lua_State *state, _Class *obj)
@@ -256,8 +254,7 @@ class LuaGlueDirectProperty<std::shared_ptr<_Type>, _Class> : public LuaGlueProp
 			if(nargs == 2)
 			{
 				// get
-				getReturnVal(state, ptr);
-				return 1;
+				return getReturnVal(state, ptr);
 			}
 			else if(nargs == 3)
 			{
@@ -295,8 +292,7 @@ class LuaGlueDirectProperty<std::shared_ptr<_Type>, _Class> : public LuaGlueProp
 				// get
 				LG_Debug("type: %s", typeid(decltype((ptr->*prop_))).name());
 				SharedType val = (ptr->*prop_);
-				stack<SharedType>::put(glueClass->luaGlue(), state, val);
-				return 1;
+				return stack<SharedType>::sput(glueClass->luaGlue(), state, val);
 			}
 			else if(nargs == 3)
 			{
@@ -376,8 +372,7 @@ class LuaGlueProperty : public LuaGluePropertyBase
 			{
 				// get
 				Type ret = (ptr->*getter)();
-				stack<Type>::put(glueClass->luaGlue(), state, ret);
-				return 1;
+				return stack<Type>::sput(glueClass->luaGlue(), state, ret);
 			}
 			else if(nargs == 3)
 			{

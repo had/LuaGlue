@@ -31,5 +31,9 @@ copy_to_build(plugin_test.lua)
 add_executable(plugin_test plugin_test.cpp plugin_test.lua)
 target_link_libraries(plugin_test ${LUA_LIBRARIES} dl)
 
+copy_to_build(tuple_test.lua)
+add_executable(tuple_test tuple_test.cpp tuple_test.lua)
+target_link_libraries(tuple_test ${LUA_LIBRARIES})
+
 add_library(plugin MODULE plugin.cpp)
 

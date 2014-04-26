@@ -62,9 +62,8 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 			
 			lua_pop(state, 2);
 			
-			stack<_Value>::put(glueClass->luaGlue(), state, ret);
+			return stack<_Value>::sput(glueClass->luaGlue(), state, ret);
 			
-			return 1;
 		}
 		
 		static int lua_call_func(lua_State *state)

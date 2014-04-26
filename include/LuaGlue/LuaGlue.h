@@ -7,6 +7,7 @@
 #include <map>
 #include <typeinfo>
 #include <memory>
+#include <cassert>
 
 #include "LuaGlue/LuaGlueBase.h"
 #include "LuaGlue/LuaGlueClassBase.h"
@@ -75,7 +76,8 @@ class LuaGlue : public LuaGlueBase
 		template<typename _Type>
 		void setGlobal(const char *name, _Type v)
 		{
-			stack<_Type>::put(this, state_, v);
+			int n = stack<_Type>::sput(this, state_, v);
+            assert(n==1); // we cannot set multiple values (a tuple) as one global
 			lua_setglobal(state_, name);
 		}
 		

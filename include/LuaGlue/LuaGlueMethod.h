@@ -71,8 +71,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			
-			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
-			return 1;
+			return stack<ReturnType>::sput(glueClass->luaGlue(), state, ret);
 		}
 		
 	private:
@@ -199,8 +198,7 @@ class LuaGlueConstMethod : public LuaGlueMethodBase
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			
-			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
-			return 1;
+			return stack<ReturnType>::sput(glueClass->luaGlue(), state, ret);
 		}
 		
 	private:
@@ -331,8 +329,7 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			
-			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
-			return 1;
+			return stack<ReturnType>::sput(glueClass->luaGlue(), state, ret);
 		}
 		
 	private:

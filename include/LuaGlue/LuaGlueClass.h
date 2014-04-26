@@ -170,7 +170,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		void setProperty(const std::string &name, _Class *obj, _Type v)
 		{
 			pushInstance(luaGlue_->state(), obj);
-			stack<_Type>::put(luaGlue_, luaGlue_->state(), v);
+			int n = stack<_Type>::sput(luaGlue_, luaGlue_->state(), v);
+            assert(n==1); // we cannot set multiple values (a tuple) as a property
 			lua_setfield(luaGlue_->state(), -2, name.c_str());
 			lua_pop(luaGlue_->state(), 1);
 		}

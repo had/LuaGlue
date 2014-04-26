@@ -5,6 +5,7 @@
 #include <tuple>
 #include <lua.hpp>
 #include <typeinfo>
+#include <cassert>
 
 class LuaGlueBase;
 template<typename _Ret, typename... _Args>
@@ -59,14 +60,14 @@ struct stack {
 		return T();
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T v)
+	static int sput(LuaGlueBase *g, lua_State *s, T v)
 	{
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
 			LG_Debug("stack::put<static1 %s>: mapped", typeid(T).name());
 			lgc->pushInstance(s, new T(v), true);
-			return;
+			return 1;
 		}
 		
 		// otherwise push onto stack as light user data
@@ -75,10 +76,11 @@ struct stack {
 		LG_Debug("stack::put<static1 %s>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(v), 0, true);
 		lua_pushlightuserdata(s, obj);
+        return 1;
 	}
 	
 	// for putting static types
-	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	static int sput(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		//printf("stack<T>::put(T*)\n");
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
@@ -86,7 +88,7 @@ struct stack {
 		{
 			LG_Debug("stack::put<static2 %s>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
-			return;
+			return 1;
 		}
 		
 		// otherwise push onto stack as light user data
@@ -94,6 +96,7 @@ struct stack {
 		LG_Debug("stack::put<static2 %s>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(*v), 0, true);
 		lua_pushlightuserdata(s, obj);
+        return 1;
 	}
 };
 
@@ -128,7 +131,7 @@ struct stack<std::shared_ptr<T>> {
 		return 0; // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
+	static int sput(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
 	{
 		//printf("stack<T>::put(T)\n");
 		
@@ -138,7 +141,7 @@ struct stack<std::shared_ptr<T>> {
 			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
 			LG_Debug("stack::put<shared_ptr<%s>>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
-			return;
+			return 1;
 		}
 		
 		// otherwise push onto stack as light user data
@@ -147,9 +150,10 @@ struct stack<std::shared_ptr<T>> {
 		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
 		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
 		lua_pushlightuserdata(s, obj);
+        return 1;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> *v)
+	static int sput(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> *v)
 	{
 		//printf("stack<T>::put(T)\n");
 		
@@ -159,7 +163,7 @@ struct stack<std::shared_ptr<T>> {
 			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
 			LG_Debug("stack::put<shared_ptr<%s>>: mapped", typeid(T).name());
 			lgc->pushInstance(s, *v);
-			return;
+			return 1;
 		}
 		
 		// otherwise push onto stack as light user data
@@ -168,6 +172,7 @@ struct stack<std::shared_ptr<T>> {
 		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(*v);
 		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
 		lua_pushlightuserdata(s, obj);
+        return 1;
 	}
 };
 
@@ -200,20 +205,21 @@ struct stack<LuaGlueObject<T>> {
 		return T(); // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, const LuaGlueObject<T> &v)
+	static int sput(LuaGlueBase *g, lua_State *s, const LuaGlueObject<T> &v)
 	{
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
 			LG_Debug("stack::put<LuaGlueObject<%s>>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
-			return;
+			return 1;
 		}
 		
 		// otherwise push onto stack as light user data
 		LG_Debug("stack::put<LuaGlueObject<%s>>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v);
 		lua_pushlightuserdata(s, obj);
+        return 1;
 	}
 };
 
@@ -226,7 +232,7 @@ struct stack<std::function<_Ret(_Args...)>> {
 		return LuaGlueLuaFuncRef<_Ret, _Args...>(b, idx);
 	}
 	
-	static void put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
+	static int sput(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
 	{
 		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
 		//        when passing std::functions back and forth
@@ -238,11 +244,11 @@ struct stack<std::function<_Ret(_Args...)>> {
 			
 			_Ret ret = applyTuple(b, _s, _f, t);
 			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
-			stack<_Ret>::put(b, _s, ret);
-			return 1;
+			return stack<_Ret>::put(b, _s, ret);
 		};
 		
 		lua_pushcfunction(s, func);
+        return 1;
 	}
 };
 
@@ -256,7 +262,7 @@ struct stack<std::function<void(_Args...)>> {
 		return v;
 	}
 	
-	static void put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
+	static int sput(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
 	{
 		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
 		//        when passing std::functions back and forth
@@ -272,6 +278,7 @@ struct stack<std::function<void(_Args...)>> {
 		};
 		
 		lua_pushcfunction(s, func);
+        return 1;
 	}
 };
 
@@ -282,9 +289,10 @@ struct stack<int> {
 		return luaL_checkint(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, int v)
+	static int sput(LuaGlueBase *, lua_State *s, int v)
 	{
 		lua_pushinteger(s, v);
+        return 1;
 	}
 };
 
@@ -295,9 +303,10 @@ struct stack<unsigned int> {
 		return luaL_checkinteger(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, unsigned int v)
+	static int sput(LuaGlueBase *, lua_State *s, unsigned int v)
 	{
 		lua_pushinteger(s, v);
+        return 1;
 	}
 };
 
@@ -308,9 +317,10 @@ struct stack<float> {
 		return luaL_checknumber(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, float v)
+	static int sput(LuaGlueBase *, lua_State *s, float v)
 	{
 		lua_pushnumber(s, v);
+        return 1;
 	}
 };
 
@@ -321,9 +331,10 @@ struct stack<double> {
 		return luaL_checknumber(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, double v)
+	static int sput(LuaGlueBase *, lua_State *s, double v)
 	{
 		lua_pushnumber(s, v);
+        return 1;
 	}
 };
 
@@ -334,9 +345,10 @@ struct stack<bool> {
 		return lua_toboolean(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, bool v)
+	static int sput(LuaGlueBase *, lua_State *s, bool v)
 	{
 		lua_pushboolean(s, v);
+        return 1;
 	}
 };
 
@@ -347,9 +359,10 @@ struct stack<char> {
 		return luaL_checkinteger(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, char v)
+	static int sput(LuaGlueBase *, lua_State *s, char v)
 	{
 		lua_pushinteger(s, v);
+        return 1;
 	}
 };
 
@@ -360,9 +373,10 @@ struct stack<const char *> {
 		return luaL_checkstring(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	static int sput(LuaGlueBase *, lua_State *s, const char *v)
 	{
 		lua_pushstring(s, v);
+        return 1;
 	}
 };
 
@@ -375,15 +389,17 @@ struct stack<std::string> {
 		return str;
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, std::string v)
+	static int sput(LuaGlueBase *, lua_State *s, std::string v)
 	{
 		lua_pushstring(s, v.c_str());
+        return 1;
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, std::string *v)
+	static int sput(LuaGlueBase *, lua_State *s, std::string *v)
 	{
 		LG_Debug("str: %s", v->c_str());
 		lua_pushstring(s, v->c_str());
+        return 1;
 	}
 };
 
@@ -419,7 +435,7 @@ struct stack<T *> {
 		return 0;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	static int sput(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		// first look for a class we support
 
@@ -430,13 +446,14 @@ struct stack<T *> {
 		{
 			LG_Debug("stack::put<%s *>: mapped %p", typeid(T).name(), v);
 			lgc->pushInstance(s, v);
-			return;
+			return 1;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T*>: lud!\n");
 		LG_Debug("stack::put<%s *>: lud", typeid(T).name());
 		lua_pushlightuserdata(s, v);
+        return 1;
 	}
 };
 
@@ -1075,7 +1092,8 @@ struct apply_lua_func
 		
 		typedef typename std::remove_reference<decltype(std::get<argIdx>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		stack<ltype>::put(g, s, std::get<argIdx>(t));
+		int n = stack<ltype>::sput(g, s, std::get<argIdx>(t));
+        assert(n==1); // we cannot set multiple values (a tuple) as a lua function parameter
 		
 		apply_lua_func<N-1>::applyTuple( g, s, std::forward<decltype(t)>(t), std::get<argIdx>(t), args... );
 	}
@@ -1115,6 +1133,20 @@ void applyTuple( LuaGlueBase *g, lua_State *s, Args... args )
 	std::tuple<Args...> t(args...);
 	apply_lua_func<sizeof...(Args)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }
+
+//-----------------------------------------------------------------------------
+
+// stack specialization for passing multiple values to lua
+template<typename... Args>
+struct stack<std::tuple<Args...>> {
+    // No getter, I don't think it makes sense to give the possibility to convert
+    // several lua values into a c++ tuple... but I could be wrong.
+	static int sput(LuaGlueBase *g, lua_State *s, std::tuple<Args...> v)
+	{
+        apply_lua_func<sizeof...(Args)>::applyTuple(g,s,std::forward<decltype(v)>(v));
+        return sizeof...(Args);
+	}
+};
 
 
 #endif /* LUAGLUE_APPLYTUPLE_H_GUARD */
